@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool Zoo - База знаний</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Tool Zoo - База знаний</h1>
+            <nav>
+                <button class="nav-btn active" data-page="search">Поиск</button>
+                <button class="nav-btn" data-page="add">Добавить</button>
+                <button class="nav-btn" data-page="admin">Аппрув</button>
+            </nav>
+        </header>
+
+        <main>
+            <div id="search-page" class="page active">
+                <h2>Поиск по базе знаний</h2>
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="Введите ваш вопрос...">
+                    <button id="search-btn">Найти</button>
+                </div>
+                <div id="search-results" class="results"></div>
+            </div>
+
+            <div id="add-page" class="page">
+                <h2>Добавить вопрос и ответ</h2>
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="form">Форма</button>
+                    <button class="tab-btn" data-tab="file">Файл</button>
+                    <button class="tab-btn" data-tab="voice">Голос</button>
+                </div>
+
+                <div id="form-tab" class="tab-content active">
+                    <form id="qa-form">
+                        <div class="form-group">
+                            <label for="question">Вопрос:</label>
+                            <textarea id="question" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="answer">Ответ:</label>
+                            <textarea id="answer" rows="5" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="submitted-by">От кого (необязательно):</label>
+                            <input type="text" id="submitted-by">
+                        </div>
+                        <button type="submit">Отправить на обработку</button>
+                    </form>
+                </div>
+
+                <div id="file-tab" class="tab-content">
+                    <form id="file-form">
+                        <div class="form-group">
+                            <label for="file-input">Загрузить CSV или Excel файл:</label>
+                            <input type="file" id="file-input" accept=".csv,.xlsx,.xls" required>
+                            <small>Файл должен содержать колонки 'question' и 'answer'</small>
+                        </div>
+                        <button type="submit">Загрузить</button>
+                    </form>
+                </div>
+
+                <div id="voice-tab" class="tab-content">
+                    <form id="voice-form">
+                        <div class="form-group">
+                            <label for="voice-input">Загрузить голосовое сообщение:</label>
+                            <input type="file" id="voice-input" accept="audio/*" required>
+                        </div>
+                        <button type="submit">Обработать</button>
+                    </form>
+                </div>
+
+                <div id="add-message" class="message"></div>
+            </div>
+
+            <div id="admin-page" class="page">
+                <h2>Панель аппрува</h2>
+                <button id="refresh-pending">Обновить список</button>
+                <div id="pending-list" class="pending-list"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
