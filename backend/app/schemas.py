@@ -25,6 +25,7 @@ class QAPairResponse(BaseModel):
     answer_processed: Optional[str] = None
     status: str
     submitted_by: Optional[str] = None
+    slack_user: Optional[str] = None
     created_at: datetime
     approved_at: Optional[datetime] = None
     keywords: List[KeywordResponse] = []
@@ -44,9 +45,24 @@ class QAPairPendingResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class QAPairUnansweredResponse(BaseModel):
+    id: int
+    question: str
+    slack_user: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
 class SearchRequest(BaseModel):
     query: str
 
 class SearchResponse(BaseModel):
     qa_pairs: List[QAPairResponse]
 
+class SlackQuestionRequest(BaseModel):
+    question: str
+    slack_user: str
+
+class AddAnswerRequest(BaseModel):
+    answer: str

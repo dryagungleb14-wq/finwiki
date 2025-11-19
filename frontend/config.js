@@ -1,2 +1,2 @@
-window.API_URL = 'https://your-backend-url.railway.app';
+window.API_URL = 'http://localhost:8000';
 

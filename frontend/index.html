@@ -10,11 +10,12 @@
 <body>
     <div class="container">
         <header>
-            <h1>Tool Zoo - База знаний</h1>
+            <h1>FinWiki — База знаний</h1>
             <nav>
                 <button class="nav-btn active" data-page="search">Поиск</button>
                 <button class="nav-btn" data-page="add">Добавить</button>
                 <button class="nav-btn" data-page="admin">Аппрув</button>
+                <button class="nav-btn" data-page="unanswered">Неотвеченные</button>
             </nav>
         </header>
 
@@ -82,6 +83,12 @@
                 <h2>Панель аппрува</h2>
                 <button id="refresh-pending">Обновить список</button>
                 <div id="pending-list" class="pending-list"></div>
+            </div>
+
+            <div id="unanswered-page" class="page">
+                <h2>Неотвеченные вопросы из Slack</h2>
+                <button id="refresh-unanswered">Обновить список</button>
+                <div id="unanswered-list" class="pending-list"></div>
             </div>
         </main>
     </div>

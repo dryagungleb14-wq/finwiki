@@ -8,6 +8,7 @@ class QAPairStatus(enum.Enum):
     pending = "pending"
     approved = "approved"
     rejected = "rejected"
+    unanswered = "unanswered"
 
 class QAPair(Base):
     __tablename__ = "qa_pairs"
@@ -19,6 +20,7 @@ class QAPair(Base):
     answer_processed = Column(String, nullable=True)
     status = Column(Enum(QAPairStatus), default=QAPairStatus.pending, nullable=False)
     submitted_by = Column(String, nullable=True)
+    slack_user = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     approved_at = Column(DateTime(timezone=True), nullable=True)
 

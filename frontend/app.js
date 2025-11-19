@@ -302,3 +302,86 @@ document.querySelector('[data-page="admin"]').addEventListener('click', () => {
     setTimeout(loadPending, 100);
 });
 
+async function loadUnanswered() {
+    const unansweredList = document.getElementById('unanswered-list');
+    unansweredList.innerHTML = '<div class="loading">Загрузка...</div>';
+    
+    try {
+        const response = await fetch(`${API_URL}/api/slack/unanswered`);
+        
+        if (response.ok) {
+            const data = await response.json();
+            displayUnanswered(data);
+        } else {
+            unansweredList.innerHTML = '<div class="message error">Ошибка загрузки</div>';
+        }
+    } catch (error) {
+        unansweredList.innerHTML = `<div class="message error">Ошибка: ${error.message}</div>`;
+    }
+}
+
+function displayUnanswered(items) {
+    const unansweredList = document.getElementById('unanswered-list');
+    
+    if (items.length === 0) {
+        unansweredList.innerHTML = '<div class="message">Нет неотвеченных вопросов</div>';
+        return;
+    }
+    
+    unansweredList.innerHTML = items.map(item => `
+        <div class="pending-item">
+            <h3>Вопрос #${item.id}</h3>
+            ${item.slack_user ? `<p><strong>Из Slack:</strong> ${escapeHtml(item.slack_user)}</p>` : ''}
+            <p><strong>Дата:</strong> ${new Date(item.created_at).toLocaleString('ru-RU')}</p>
+            
+            <div class="original">
+                <h4>Вопрос:</h4>
+                <p>${escapeHtml(item.question)}</p>
+            </div>
+            
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="answer-${item.id}">Ответ:</label>
+                <textarea id="answer-${item.id}" rows="4" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+            </div>
+            
+            <div class="actions">
+                <button class="btn-approve" onclick="addAnswer(${item.id})">Добавить ответ</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function addAnswer(id) {
+    const answerText = document.getElementById(`answer-${id}`).value.trim();
+    
+    if (!answerText) {
+        alert('Введите ответ');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/api/slack/qa/${id}/answer`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ answer: answerText })
+        });
+        
+        if (response.ok) {
+            loadUnanswered();
+        } else {
+            const error = await response.json();
+            alert(`Ошибка: ${error.detail || 'Неизвестная ошибка'}`);
+        }
+    } catch (error) {
+        alert(`Ошибка: ${error.message}`);
+    }
+}
+
+document.getElementById('refresh-unanswered').addEventListener('click', loadUnanswered);
+
+document.querySelector('[data-page="unanswered"]').addEventListener('click', () => {
+    setTimeout(loadUnanswered, 100);
+});
+
