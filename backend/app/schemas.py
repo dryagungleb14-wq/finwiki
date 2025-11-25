@@ -63,6 +63,12 @@ class SearchResponse(BaseModel):
 class SlackQuestionRequest(BaseModel):
     question: str
     slack_user: str
+    
+    class Config:
+        min_length = 1
 
 class AddAnswerRequest(BaseModel):
     answer: str
+    
+    class Config:
+        min_length = 1
