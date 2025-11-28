@@ -60,7 +60,7 @@ def handle_message(event):
                 if save_response.status_code == 200:
                     slack_client.chat_postMessage(
                         channel=channel,
-                        text="Финансовый менеджер ответит позже — ответ появится в базе знаний"
+                        text="Пока я не могу помочь с вашим вопросом. Но я передал его финансовому менеджеру. Пожалуйста, дождитесь ответа."
                     )
                 else:
                     slack_client.chat_postMessage(
