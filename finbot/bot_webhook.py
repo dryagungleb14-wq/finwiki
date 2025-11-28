@@ -81,13 +81,13 @@ def handle_message(event):
 
 @app.route("/slack/events", methods=["POST"])
 def slack_events():
-    if not signature_verifier.is_valid_request(request.get_data(), request.headers):
-        return jsonify({"error": "Invalid signature"}), 403
-    
     data = request.json
     
     if data.get("type") == "url_verification":
         return jsonify({"challenge": data.get("challenge")})
+    
+    if not signature_verifier.is_valid_request(request.get_data(), request.headers):
+        return jsonify({"error": "Invalid signature"}), 403
     
     if data.get("type") == "event_callback":
         event = data.get("event", {})
