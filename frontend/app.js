@@ -385,3 +385,82 @@ document.querySelector('[data-page="unanswered"]').addEventListener('click', () 
     setTimeout(loadUnanswered, 100);
 });
 
+async function loadHistory() {
+    const historyList = document.getElementById('history-list');
+    historyList.innerHTML = '<div class="loading">Загрузка...</div>';
+    
+    try {
+        const response = await fetch(`${API_URL}/api/log/questions?limit=100`);
+        
+        if (response.ok) {
+            const data = await response.json();
+            displayHistory(data);
+        } else {
+            historyList.innerHTML = '<div class="message error">Ошибка загрузки</div>';
+        }
+    } catch (error) {
+        historyList.innerHTML = `<div class="message error">Ошибка: ${error.message}</div>`;
+    }
+}
+
+function displayHistory(items) {
+    const historyList = document.getElementById('history-list');
+    const filter = document.getElementById('history-filter').value;
+    
+    let filteredItems = items;
+    if (filter === 'answered') {
+        filteredItems = items.filter(item => item.answers && item.answers.length > 0);
+    } else if (filter === 'unanswered') {
+        filteredItems = items.filter(item => !item.answers || item.answers.length === 0);
+    }
+    
+    if (filteredItems.length === 0) {
+        historyList.innerHTML = '<div class="message">Нет записей</div>';
+        return;
+    }
+    
+    const tableHtml = `
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Вопрос</th>
+                    <th>Ответ</th>
+                    <th>Источник</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${filteredItems.map(item => {
+                    const hasAnswer = item.answers && item.answers.length > 0;
+                    const answerText = hasAnswer ? item.answers[0].text : '—';
+                    const answerSource = hasAnswer ? item.answers[0].source : '';
+                    
+                    return `
+                        <tr>
+                            <td>${new Date(item.created_at).toLocaleString('ru-RU')}</td>
+                            <td class="question-text" title="${escapeHtml(item.text)}">${escapeHtml(item.text)}</td>
+                            <td class="answer-text ${hasAnswer ? 'status-answered' : 'status-unanswered'}" title="${escapeHtml(answerText)}">${escapeHtml(answerText)}</td>
+                            <td>
+                                <span class="source-badge ${item.source || ''}">${item.source || 'web'}</span>
+                                ${answerSource ? `<span class="source-badge ${answerSource}">${answerSource}</span>` : ''}
+                            </td>
+                        </tr>
+                    `;
+                }).join('')}
+            </tbody>
+        </table>
+    `;
+    
+    historyList.innerHTML = tableHtml;
+}
+
+document.getElementById('refresh-history').addEventListener('click', loadHistory);
+
+document.getElementById('history-filter').addEventListener('change', () => {
+    loadHistory();
+});
+
+document.querySelector('[data-page="history"]').addEventListener('click', () => {
+    setTimeout(loadHistory, 100);
+});
+

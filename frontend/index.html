@@ -16,6 +16,7 @@
                 <button class="nav-btn" data-page="add">Добавить</button>
                 <button class="nav-btn" data-page="admin">Аппрув</button>
                 <button class="nav-btn" data-page="unanswered">Неотвеченные</button>
+                <button class="nav-btn" data-page="history">История</button>
             </nav>
         </header>
 
@@ -89,6 +90,19 @@
                 <h2>Неотвеченные вопросы из Slack</h2>
                 <button id="refresh-unanswered">Обновить список</button>
                 <div id="unanswered-list" class="pending-list"></div>
+            </div>
+
+            <div id="history-page" class="page">
+                <h2>История запросов</h2>
+                <div class="history-controls">
+                    <button id="refresh-history">Обновить</button>
+                    <select id="history-filter">
+                        <option value="all">Все запросы</option>
+                        <option value="answered">С ответом</option>
+                        <option value="unanswered">Без ответа</option>
+                    </select>
+                </div>
+                <div id="history-list" class="history-list"></div>
             </div>
         </main>
     </div>

@@ -306,3 +306,120 @@ button[type="submit"]:hover {
     color: #7f8c8d;
 }
 
+.history-controls {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    align-items: center;
+}
+
+#refresh-history {
+    padding: 10px 20px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#refresh-history:hover {
+    background: #2980b9;
+}
+
+#history-filter {
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    background: white;
+}
+
+.history-list {
+    margin-top: 20px;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.history-table th,
+.history-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.history-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.history-table tr:hover {
+    background: #f8f9fa;
+}
+
+.history-table .question-text {
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.history-table .answer-text {
+    max-width: 350px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.status-answered {
+    color: #27ae60;
+    font-weight: 500;
+}
+
+.status-unanswered {
+    color: #e74c3c;
+    font-weight: 500;
+}
+
+.source-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    background: #ecf0f1;
+    color: #7f8c8d;
+}
+
+.source-badge.slack {
+    background: #4A154B;
+    color: white;
+}
+
+.source-badge.web {
+    background: #3498db;
+    color: white;
+}
+
+.source-badge.kb {
+    background: #27ae60;
+    color: white;
+}
+
+#refresh-unanswered {
+    padding: 10px 20px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+
+#refresh-unanswered:hover {
+    background: #2980b9;
+}
+
