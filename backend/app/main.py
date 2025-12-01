@@ -7,8 +7,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI(title="FinWiki API", version="1.0.0")
 
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")

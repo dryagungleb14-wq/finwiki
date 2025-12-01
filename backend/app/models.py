@@ -4,11 +4,13 @@ from sqlalchemy.sql import func
 import enum
 from app.database import Base
 
+
 class QAPairStatus(enum.Enum):
     pending = "pending"
     approved = "approved"
     rejected = "rejected"
     unanswered = "unanswered"
+
 
 class QAPair(Base):
     __tablename__ = "qa_pairs"
@@ -26,6 +28,7 @@ class QAPair(Base):
 
     keywords = relationship("Keyword", back_populates="qa_pair", cascade="all, delete-orphan")
 
+
 class Keyword(Base):
     __tablename__ = "keywords"
 
@@ -34,4 +37,28 @@ class Keyword(Base):
     keyword = Column(String, nullable=False)
 
     qa_pair = relationship("QAPair", back_populates="keywords")
+
+
+class Question(Base):
+    __tablename__ = "questions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    text = Column(String, nullable=False)
+    source = Column(String, nullable=True)
+    external_id = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    answers = relationship("Answer", back_populates="question", cascade="all, delete-orphan")
+
+
+class Answer(Base):
+    __tablename__ = "answers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    question_id = Column(Integer, ForeignKey("questions.id"), nullable=False, index=True)
+    text = Column(String, nullable=False)
+    source = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    question = relationship("Question", back_populates="answers")
 

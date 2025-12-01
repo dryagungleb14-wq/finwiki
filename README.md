@@ -32,7 +32,7 @@ pip install -r requirements.txt
 
 2. Создайте файл `.env`:
 ```bash
-DATABASE_URL=sqlite:///./finwiki.db
+DATABASE_URL=postgresql://user:password@host:port/database
 GEMINI_API_KEY=your_gemini_api_key_here
 FRONTEND_URL=http://localhost:3000
 ```
