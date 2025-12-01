@@ -4,11 +4,18 @@
 - Расширение запроса синонимами
 - Нормализация текста
 """
-import pymorphy2
 from typing import List, Set
 
 # Инициализация морфологического анализатора для русского языка
-morph = pymorphy2.MorphAnalyzer()
+try:
+    import pymorphy2
+    morph = pymorphy2.MorphAnalyzer()
+    PYMORPHY_AVAILABLE = True
+    print("✅ Pymorphy2 loaded successfully")
+except Exception as e:
+    print(f"⚠️  Pymorphy2 not available: {e}. Lemmatization will use simple fallback.")
+    morph = None
+    PYMORPHY_AVAILABLE = False
 
 # Словарь синонимов для финансовых терминов
 SYNONYMS = {
@@ -69,8 +76,15 @@ def lemmatize_word(word: str) -> str:
     - "выплачивается" -> "выплачивать"
     - "работаем" -> "работать"
     """
-    parsed = morph.parse(word.lower())[0]
-    return parsed.normal_form
+    if PYMORPHY_AVAILABLE and morph:
+        try:
+            parsed = morph.parse(word.lower())[0]
+            return parsed.normal_form
+        except:
+            pass
+
+    # Fallback: простое приведение к lowercase
+    return word.lower()
 
 
 def get_synonyms(word: str) -> List[str]:
