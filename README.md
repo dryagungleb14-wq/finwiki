@@ -35,9 +35,18 @@ pip install -r requirements.txt
 DATABASE_URL=postgresql://user:password@host:port/database
 GEMINI_API_KEY=your_gemini_api_key_here
 FRONTEND_URL=http://localhost:3000
+ADMIN_API_KEY=your_secure_admin_key_here
+SLACK_API_KEY=your_secure_slack_key_here
 ```
 
-3. Запустите сервер:
+**Важно:** Сгенерируйте надежные случайные ключи для `ADMIN_API_KEY` и `SLACK_API_KEY`. Эти ключи используются для защиты административных эндпоинтов и Slack интеграции.
+
+3. Запустите миграции базы данных:
+```bash
+python run_migrations.py
+```
+
+4. Запустите сервер:
 ```bash
 uvicorn app.main:app --reload
 ```

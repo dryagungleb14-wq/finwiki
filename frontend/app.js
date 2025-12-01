@@ -1,4 +1,5 @@
 const API_URL = window.API_URL || 'http://localhost:8000';
+const ADMIN_API_KEY = window.ADMIN_API_KEY || '';
 
 function showPage(pageId) {
     document.querySelectorAll('.page').forEach(page => {
@@ -258,8 +259,14 @@ function displayPending(pendingItems) {
 
 async function approveQA(id) {
     try {
+        const headers = {};
+        if (ADMIN_API_KEY) {
+            headers['X-API-Key'] = ADMIN_API_KEY;
+        }
+
         const response = await fetch(`${API_URL}/api/approve/${id}`, {
-            method: 'POST'
+            method: 'POST',
+            headers: headers
         });
         
         if (response.ok) {
@@ -276,10 +283,16 @@ async function rejectQA(id) {
     if (!confirm('Вы уверены, что хотите отклонить эту запись?')) {
         return;
     }
-    
+
     try {
+        const headers = {};
+        if (ADMIN_API_KEY) {
+            headers['X-API-Key'] = ADMIN_API_KEY;
+        }
+
         const response = await fetch(`${API_URL}/api/reject/${id}`, {
-            method: 'POST'
+            method: 'POST',
+            headers: headers
         });
         
         if (response.ok) {
@@ -353,18 +366,23 @@ function displayUnanswered(items) {
 
 async function addAnswer(id) {
     const answerText = document.getElementById(`answer-${id}`).value.trim();
-    
+
     if (!answerText) {
         alert('Введите ответ');
         return;
     }
-    
+
     try {
+        const headers = {
+            'Content-Type': 'application/json',
+        };
+        if (ADMIN_API_KEY) {
+            headers['X-API-Key'] = ADMIN_API_KEY;
+        }
+
         const response = await fetch(`${API_URL}/api/slack/qa/${id}/answer`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: headers,
             body: JSON.stringify({ answer: answerText })
         });
         
@@ -500,19 +518,24 @@ function closeEditModal() {
 
 async function saveEdit() {
     if (!currentEditId) return;
-    
+
     const data = {
         question: document.getElementById('edit-question').value,
         answer: document.getElementById('edit-answer').value,
         status: document.getElementById('edit-status').value
     };
-    
+
     try {
+        const headers = {
+            'Content-Type': 'application/json',
+        };
+        if (ADMIN_API_KEY) {
+            headers['X-API-Key'] = ADMIN_API_KEY;
+        }
+
         const response = await fetch(`${API_URL}/api/qa/${currentEditId}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: headers,
             body: JSON.stringify(data)
         });
         
@@ -532,10 +555,16 @@ async function deleteQA(id) {
     if (!confirm('Вы уверены, что хотите удалить эту запись?')) {
         return;
     }
-    
+
     try {
+        const headers = {};
+        if (ADMIN_API_KEY) {
+            headers['X-API-Key'] = ADMIN_API_KEY;
+        }
+
         const response = await fetch(`${API_URL}/api/qa/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: headers
         });
         
         if (response.ok) {

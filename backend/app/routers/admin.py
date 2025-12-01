@@ -6,6 +6,7 @@ from typing import List, Optional
 from app.database import get_db
 from app.models import QAPair, QAPairStatus, Question, Keyword
 from app.schemas import QAPairResponse, QAPairPendingResponse, QuestionLogResponse, QAPairUpdate
+from app.auth import verify_admin_key
 
 router = APIRouter(prefix="/api", tags=["admin"])
 
@@ -28,7 +29,11 @@ async def get_qa(qa_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/approve/{qa_id}", response_model=QAPairResponse)
-async def approve_qa(qa_id: int, db: Session = Depends(get_db)):
+async def approve_qa(
+    qa_id: int,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_admin_key)
+):
     qa_pair = db.query(QAPair).filter(QAPair.id == qa_id).first()
     if not qa_pair:
         raise HTTPException(status_code=404, detail="Q&A не найден")
@@ -46,7 +51,11 @@ async def approve_qa(qa_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/reject/{qa_id}", response_model=QAPairResponse)
-async def reject_qa(qa_id: int, db: Session = Depends(get_db)):
+async def reject_qa(
+    qa_id: int,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_admin_key)
+):
     qa_pair = db.query(QAPair).filter(QAPair.id == qa_id).first()
     if not qa_pair:
         raise HTTPException(status_code=404, detail="Q&A не найден")
@@ -88,7 +97,12 @@ async def get_all_qa(
 
 
 @router.put("/qa/{qa_id}", response_model=QAPairResponse)
-async def update_qa(qa_id: int, data: QAPairUpdate, db: Session = Depends(get_db)):
+async def update_qa(
+    qa_id: int,
+    data: QAPairUpdate,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_admin_key)
+):
     qa_pair = db.query(QAPair).filter(QAPair.id == qa_id).first()
     if not qa_pair:
         raise HTTPException(status_code=404, detail="Q&A не найден")
@@ -115,7 +129,11 @@ async def update_qa(qa_id: int, data: QAPairUpdate, db: Session = Depends(get_db
 
 
 @router.delete("/qa/{qa_id}")
-async def delete_qa(qa_id: int, db: Session = Depends(get_db)):
+async def delete_qa(
+    qa_id: int,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_admin_key)
+):
     qa_pair = db.query(QAPair).filter(QAPair.id == qa_id).first()
     if not qa_pair:
         raise HTTPException(status_code=404, detail="Q&A не найден")
