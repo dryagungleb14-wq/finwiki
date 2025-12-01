@@ -16,7 +16,7 @@
                 <button class="nav-btn" data-page="add">Добавить</button>
                 <button class="nav-btn" data-page="admin">Аппрув</button>
                 <button class="nav-btn" data-page="unanswered">Неотвеченные</button>
-                <button class="nav-btn" data-page="history">История</button>
+                <button class="nav-btn" data-page="knowledge">База знаний</button>
             </nav>
         </header>
 
@@ -92,17 +92,46 @@
                 <div id="unanswered-list" class="pending-list"></div>
             </div>
 
-            <div id="history-page" class="page">
-                <h2>История запросов</h2>
-                <div class="history-controls">
-                    <button id="refresh-history">Обновить</button>
-                    <select id="history-filter">
-                        <option value="all">Все запросы</option>
-                        <option value="answered">С ответом</option>
+            <div id="knowledge-page" class="page">
+                <h2>База знаний</h2>
+                <div class="knowledge-controls">
+                    <button id="refresh-knowledge">Обновить</button>
+                    <select id="knowledge-filter">
+                        <option value="all">Все записи</option>
+                        <option value="approved">Одобренные</option>
+                        <option value="pending">На модерации</option>
                         <option value="unanswered">Без ответа</option>
+                        <option value="rejected">Отклонённые</option>
                     </select>
                 </div>
-                <div id="history-list" class="history-list"></div>
+                <div id="knowledge-list" class="knowledge-list"></div>
+                
+                <div id="edit-modal" class="modal" style="display: none;">
+                    <div class="modal-content">
+                        <h3>Редактирование записи #<span id="edit-id"></span></h3>
+                        <div class="form-group">
+                            <label for="edit-question">Вопрос:</label>
+                            <textarea id="edit-question" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-answer">Ответ:</label>
+                            <textarea id="edit-answer" rows="5"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-status">Статус:</label>
+                            <select id="edit-status">
+                                <option value="approved">Одобрено</option>
+                                <option value="pending">На модерации</option>
+                                <option value="unanswered">Без ответа</option>
+                                <option value="rejected">Отклонено</option>
+                            </select>
+                        </div>
+                        <div class="modal-actions">
+                            <button id="save-edit" class="btn-approve">Сохранить</button>
+                            <button id="cancel-edit" class="btn-reject">Отмена</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>

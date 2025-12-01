@@ -106,3 +106,11 @@ class QuestionLogResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
+class QAPairUpdate(BaseModel):
+    question: Optional[str] = None
+    answer: Optional[str] = None
+    question_processed: Optional[str] = None
+    answer_processed: Optional[str] = None
+    status: Optional[str] = None
+

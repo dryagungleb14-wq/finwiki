@@ -385,82 +385,184 @@ document.querySelector('[data-page="unanswered"]').addEventListener('click', () 
     setTimeout(loadUnanswered, 100);
 });
 
-async function loadHistory() {
-    const historyList = document.getElementById('history-list');
-    historyList.innerHTML = '<div class="loading">Загрузка...</div>';
+let currentEditId = null;
+
+async function loadKnowledge() {
+    const knowledgeList = document.getElementById('knowledge-list');
+    knowledgeList.innerHTML = '<div class="loading">Загрузка...</div>';
+    
+    const filter = document.getElementById('knowledge-filter').value;
+    const url = filter === 'all' 
+        ? `${API_URL}/api/qa?limit=100`
+        : `${API_URL}/api/qa?status=${filter}&limit=100`;
     
     try {
-        const response = await fetch(`${API_URL}/api/log/questions?limit=100`);
+        const response = await fetch(url);
         
         if (response.ok) {
             const data = await response.json();
-            displayHistory(data);
+            displayKnowledge(data);
         } else {
-            historyList.innerHTML = '<div class="message error">Ошибка загрузки</div>';
+            knowledgeList.innerHTML = '<div class="message error">Ошибка загрузки</div>';
         }
     } catch (error) {
-        historyList.innerHTML = `<div class="message error">Ошибка: ${error.message}</div>`;
+        knowledgeList.innerHTML = `<div class="message error">Ошибка: ${error.message}</div>`;
     }
 }
 
-function displayHistory(items) {
-    const historyList = document.getElementById('history-list');
-    const filter = document.getElementById('history-filter').value;
+function getStatusLabel(status) {
+    const labels = {
+        'approved': 'Одобрено',
+        'pending': 'На модерации',
+        'unanswered': 'Без ответа',
+        'rejected': 'Отклонено'
+    };
+    return labels[status] || status;
+}
+
+function getStatusClass(status) {
+    const classes = {
+        'approved': 'status-answered',
+        'pending': 'status-pending',
+        'unanswered': 'status-unanswered',
+        'rejected': 'status-rejected'
+    };
+    return classes[status] || '';
+}
+
+function displayKnowledge(items) {
+    const knowledgeList = document.getElementById('knowledge-list');
     
-    let filteredItems = items;
-    if (filter === 'answered') {
-        filteredItems = items.filter(item => item.answers && item.answers.length > 0);
-    } else if (filter === 'unanswered') {
-        filteredItems = items.filter(item => !item.answers || item.answers.length === 0);
-    }
-    
-    if (filteredItems.length === 0) {
-        historyList.innerHTML = '<div class="message">Нет записей</div>';
+    if (items.length === 0) {
+        knowledgeList.innerHTML = '<div class="message">Нет записей</div>';
         return;
     }
     
     const tableHtml = `
-        <table class="history-table">
+        <table class="knowledge-table">
             <thead>
                 <tr>
-                    <th>Дата</th>
+                    <th>ID</th>
                     <th>Вопрос</th>
                     <th>Ответ</th>
-                    <th>Источник</th>
+                    <th>Статус</th>
+                    <th>Дата</th>
+                    <th>Действия</th>
                 </tr>
             </thead>
             <tbody>
-                ${filteredItems.map(item => {
-                    const hasAnswer = item.answers && item.answers.length > 0;
-                    const answerText = hasAnswer ? item.answers[0].text : '—';
-                    const answerSource = hasAnswer ? item.answers[0].source : '';
-                    
-                    return `
-                        <tr>
-                            <td>${new Date(item.created_at).toLocaleString('ru-RU')}</td>
-                            <td class="question-text" title="${escapeHtml(item.text)}">${escapeHtml(item.text)}</td>
-                            <td class="answer-text ${hasAnswer ? 'status-answered' : 'status-unanswered'}" title="${escapeHtml(answerText)}">${escapeHtml(answerText)}</td>
-                            <td>
-                                <span class="source-badge ${item.source || ''}">${item.source || 'web'}</span>
-                                ${answerSource ? `<span class="source-badge ${answerSource}">${answerSource}</span>` : ''}
-                            </td>
-                        </tr>
-                    `;
-                }).join('')}
+                ${items.map(item => `
+                    <tr>
+                        <td>${item.id}</td>
+                        <td class="question-text" title="${escapeHtml(item.question)}">${escapeHtml(item.question)}</td>
+                        <td class="answer-text" title="${escapeHtml(item.answer || '—')}">${escapeHtml(item.answer || '—')}</td>
+                        <td><span class="${getStatusClass(item.status)}">${getStatusLabel(item.status)}</span></td>
+                        <td>${new Date(item.created_at).toLocaleString('ru-RU')}</td>
+                        <td class="actions-cell">
+                            <button class="btn-edit" onclick="openEditModal(${item.id})">Изменить</button>
+                            <button class="btn-delete" onclick="deleteQA(${item.id})">Удалить</button>
+                        </td>
+                    </tr>
+                `).join('')}
             </tbody>
         </table>
     `;
     
-    historyList.innerHTML = tableHtml;
+    knowledgeList.innerHTML = tableHtml;
 }
 
-document.getElementById('refresh-history').addEventListener('click', loadHistory);
+async function openEditModal(id) {
+    try {
+        const response = await fetch(`${API_URL}/api/qa/${id}`);
+        if (!response.ok) {
+            alert('Ошибка загрузки записи');
+            return;
+        }
+        
+        const item = await response.json();
+        currentEditId = id;
+        
+        document.getElementById('edit-id').textContent = id;
+        document.getElementById('edit-question').value = item.question || '';
+        document.getElementById('edit-answer').value = item.answer || '';
+        document.getElementById('edit-status').value = item.status || 'pending';
+        
+        document.getElementById('edit-modal').style.display = 'flex';
+    } catch (error) {
+        alert(`Ошибка: ${error.message}`);
+    }
+}
 
-document.getElementById('history-filter').addEventListener('change', () => {
-    loadHistory();
+function closeEditModal() {
+    document.getElementById('edit-modal').style.display = 'none';
+    currentEditId = null;
+}
+
+async function saveEdit() {
+    if (!currentEditId) return;
+    
+    const data = {
+        question: document.getElementById('edit-question').value,
+        answer: document.getElementById('edit-answer').value,
+        status: document.getElementById('edit-status').value
+    };
+    
+    try {
+        const response = await fetch(`${API_URL}/api/qa/${currentEditId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            closeEditModal();
+            loadKnowledge();
+        } else {
+            const error = await response.json();
+            alert(`Ошибка: ${error.detail || 'Неизвестная ошибка'}`);
+        }
+    } catch (error) {
+        alert(`Ошибка: ${error.message}`);
+    }
+}
+
+async function deleteQA(id) {
+    if (!confirm('Вы уверены, что хотите удалить эту запись?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/api/qa/${id}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            loadKnowledge();
+        } else {
+            alert('Ошибка при удалении');
+        }
+    } catch (error) {
+        alert(`Ошибка: ${error.message}`);
+    }
+}
+
+document.getElementById('refresh-knowledge').addEventListener('click', loadKnowledge);
+
+document.getElementById('knowledge-filter').addEventListener('change', loadKnowledge);
+
+document.getElementById('save-edit').addEventListener('click', saveEdit);
+
+document.getElementById('cancel-edit').addEventListener('click', closeEditModal);
+
+document.getElementById('edit-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'edit-modal') {
+        closeEditModal();
+    }
 });
 
-document.querySelector('[data-page="history"]').addEventListener('click', () => {
-    setTimeout(loadHistory, 100);
+document.querySelector('[data-page="knowledge"]').addEventListener('click', () => {
+    setTimeout(loadKnowledge, 100);
 });
 
