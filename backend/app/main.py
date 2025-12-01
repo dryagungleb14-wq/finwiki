@@ -57,3 +57,10 @@ async def root():
 async def health():
     return {"status": "ok"}
 
+@app.get("/debug/tables")
+async def debug_tables():
+    from sqlalchemy import inspect
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+    return {"tables": tables}
+
