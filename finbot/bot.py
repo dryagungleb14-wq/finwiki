@@ -32,7 +32,8 @@ def handle_message(message, say):
             
             if data.get("found"):
                 answer = data.get("answer", "")
-                say(f"{answer}")
+                message_text = f"**Вопрос:** {text}\n\n{answer}"
+                say(text=message_text, thread_ts=message.get("ts"))
             else:
                 save_response = requests.post(
                     f"{API_URL}/api/slack/question",
@@ -44,14 +45,18 @@ def handle_message(message, say):
                 )
                 
                 if save_response.status_code == 200:
-                    say("Пока я не могу помочь с вашим вопросом. Но я передал его финансовому менеджеру. Пожалуйста, дождитесь ответа.")
+                    message_text = f"**Вопрос:** {text}\n\nПока я не могу помочь с вашим вопросом. Но я передал его финансовому менеджеру. Пожалуйста, дождитесь ответа."
+                    say(text=message_text, thread_ts=message.get("ts"))
                 else:
-                    say("Произошла ошибка. Попробуйте позже.")
+                    message_text = f"**Вопрос:** {text}\n\nПроизошла ошибка. Попробуйте позже."
+                    say(text=message_text, thread_ts=message.get("ts"))
         else:
-            say("Произошла ошибка при поиске. Попробуйте позже.")
+            message_text = f"**Вопрос:** {text}\n\nПроизошла ошибка при поиске. Попробуйте позже."
+            say(text=message_text, thread_ts=message.get("ts"))
             
     except Exception as e:
-        say("Произошла ошибка. Попробуйте позже.")
+        message_text = f"**Вопрос:** {text}\n\nПроизошла ошибка. Попробуйте позже."
+        say(text=message_text, thread_ts=message.get("ts"))
 
 if __name__ == "__main__":
     handler = SocketModeHandler(app, SLACK_APP_TOKEN)

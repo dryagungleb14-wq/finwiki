@@ -43,9 +43,11 @@ def handle_message(event):
             
             if data.get("found"):
                 answer = data.get("answer", "")
+                message_text = f"**Вопрос:** {text}\n\n{answer}"
                 slack_client.chat_postMessage(
                     channel=channel,
-                    text=answer
+                    text=message_text,
+                    thread_ts=event.get("ts")
                 )
             else:
                 save_response = requests.post(
@@ -58,25 +60,33 @@ def handle_message(event):
                 )
                 
                 if save_response.status_code == 200:
+                    message_text = f"**Вопрос:** {text}\n\nПока я не могу помочь с вашим вопросом. Но я передал его финансовому менеджеру. Пожалуйста, дождитесь ответа."
                     slack_client.chat_postMessage(
                         channel=channel,
-                        text="Пока я не могу помочь с вашим вопросом. Но я передал его финансовому менеджеру. Пожалуйста, дождитесь ответа."
+                        text=message_text,
+                        thread_ts=event.get("ts")
                     )
                 else:
+                    message_text = f"**Вопрос:** {text}\n\nПроизошла ошибка. Попробуйте позже."
                     slack_client.chat_postMessage(
                         channel=channel,
-                        text="Произошла ошибка. Попробуйте позже."
+                        text=message_text,
+                        thread_ts=event.get("ts")
                     )
         else:
+            message_text = f"**Вопрос:** {text}\n\nПроизошла ошибка при поиске. Попробуйте позже."
             slack_client.chat_postMessage(
                 channel=channel,
-                text="Произошла ошибка при поиске. Попробуйте позже."
+                text=message_text,
+                thread_ts=event.get("ts")
             )
             
     except Exception as e:
+        message_text = f"**Вопрос:** {text}\n\nПроизошла ошибка. Попробуйте позже."
         slack_client.chat_postMessage(
             channel=channel,
-            text="Произошла ошибка. Попробуйте позже."
+            text=message_text,
+            thread_ts=event.get("ts")
         )
 
 @app.route("/slack/events", methods=["POST"])
