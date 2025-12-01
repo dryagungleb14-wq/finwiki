@@ -6,12 +6,17 @@ from app.database import get_db
 from app.models import QAPair, QAPairStatus, Question, Answer
 from app.schemas import QAPairUnansweredResponse, SlackQuestionRequest, AddAnswerRequest, QAPairResponse
 from app.services.search_service import search
+from app.auth import verify_slack_key, verify_admin_key
 
 router = APIRouter(prefix="/api/slack", tags=["slack"])
 
 
 @router.post("/question", response_model=dict)
-async def save_slack_question(request: SlackQuestionRequest, db: Session = Depends(get_db)):
+async def save_slack_question(
+    request: SlackQuestionRequest,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_slack_key)
+):
     if not request.question or not request.question.strip():
         raise HTTPException(status_code=400, detail="Вопрос не может быть пустым")
 
@@ -48,7 +53,12 @@ async def get_unanswered(db: Session = Depends(get_db)):
 
 
 @router.post("/qa/{qa_id}/answer", response_model=QAPairResponse)
-async def add_answer_to_question(qa_id: int, request: AddAnswerRequest, db: Session = Depends(get_db)):
+async def add_answer_to_question(
+    qa_id: int,
+    request: AddAnswerRequest,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_admin_key)
+):
     if not request.answer or not request.answer.strip():
         raise HTTPException(status_code=400, detail="Ответ не может быть пустым")
 
@@ -82,7 +92,11 @@ async def add_answer_to_question(qa_id: int, request: AddAnswerRequest, db: Sess
 
 
 @router.get("/search", response_model=dict)
-async def search_for_slack(query: str, db: Session = Depends(get_db)):
+async def search_for_slack(
+    query: str,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_slack_key)
+):
     if not query or not query.strip():
         return {"found": False}
 

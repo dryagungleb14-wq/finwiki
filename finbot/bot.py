@@ -8,6 +8,7 @@ load_dotenv()
 
 SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
 SLACK_APP_TOKEN = os.getenv("SLACK_APP_TOKEN")
+SLACK_API_KEY = os.getenv("SLACK_API_KEY")
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 app = App(token=SLACK_BOT_TOKEN)
@@ -21,9 +22,11 @@ def handle_message(message, say):
         return
     
     try:
+        headers = {"X-API-Key": SLACK_API_KEY} if SLACK_API_KEY else {}
         search_response = requests.get(
             f"{API_URL}/api/slack/search",
             params={"query": text},
+            headers=headers,
             timeout=5
         )
         
@@ -41,6 +44,7 @@ def handle_message(message, say):
                         "question": text,
                         "slack_user": user_id
                     },
+                    headers=headers,
                     timeout=5
                 )
                 
