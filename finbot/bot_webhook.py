@@ -108,18 +108,21 @@ def handle_message(event):
         if search_response and search_response.status_code == 200:
             try:
                 data = search_response.json()
-                logger.info(f"Ответ от backend: found={data.get('found')}")
+                logger.info(f"Ответ от backend: found={data.get('found')}, call_manager={data.get('call_manager')}, confidence={data.get('confidence', 0.0)}")
 
-                if data.get("found"):
+                if data.get("found") and not data.get("call_manager"):
                     answer = data.get("answer", "")
+                    confidence = data.get("confidence", 0.0)
                     message_text = f"**Вопрос:** {text}\n\n{answer}"
-                    logger.info(f"Ответ найден в БЗ для {user_id}, отправляю ответ")
+                    logger.info(f"Ответ найден (confidence: {confidence}) для {user_id}, отправляю ответ")
                     slack_client.chat_postMessage(
                         channel=channel,
                         text=message_text,
                         thread_ts=event.get("ts")
                     )
                     return
+                elif data.get("call_manager"):
+                    logger.info(f"AI не уверен в ответе (confidence: {data.get('confidence', 0.0)}), призываем менеджера для {user_id}")
                 else:
                     logger.info(f"Ответ не найден в БЗ для вопроса: {text[:50]}")
             except Exception as json_error:
