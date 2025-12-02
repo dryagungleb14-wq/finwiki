@@ -109,6 +109,9 @@ def handle_message(event):
             try:
                 data = search_response.json()
                 logger.info(f"Ответ от backend: found={data.get('found')}, call_manager={data.get('call_manager')}, confidence={data.get('confidence', 0.0)}")
+                
+                if data.get("reason"):
+                    logger.info(f"Причина результата поиска: {data.get('reason')}")
 
                 if data.get("found") and not data.get("call_manager"):
                     answer = data.get("answer", "")

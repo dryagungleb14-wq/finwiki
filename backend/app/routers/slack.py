@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+import logging
 
 from app.database import get_db
 from app.models import QAPair, QAPairStatus, Question, Answer
@@ -10,6 +11,7 @@ from app.services.ai_agent_service import process_question
 from app.auth import verify_slack_key, verify_admin_key
 
 router = APIRouter(prefix="/api/slack", tags=["slack"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/question", response_model=dict)
@@ -99,43 +101,67 @@ async def search_for_slack(
     api_key: str = Depends(verify_slack_key)
 ):
     if not query or not query.strip():
+        logger.warning("Пустой запрос от Slack")
         return {"found": False, "call_manager": True}
 
-    question = Question(
-        text=query.strip(),
-        source="slack"
-    )
+    query_clean = query.strip()
+    logger.info(f"Поиск ответа для вопроса: '{query_clean}'")
 
-    db.add(question)
-    db.commit()
-    db.refresh(question)
-
-    agent_result = process_question(db, query.strip(), confidence_threshold=0.8)
-
-    if agent_result["found"] and agent_result["confidence"] >= 0.8:
-        answer_text = agent_result["answer"]
-
-        answer = Answer(
-            question_id=question.id,
-            text=answer_text,
-            source="kb_ai_agent"
+    try:
+        question = Question(
+            text=query_clean,
+            source="slack"
         )
 
-        db.add(answer)
+        db.add(question)
         db.commit()
+        db.refresh(question)
+        logger.info(f"Вопрос сохранён в БД с ID: {question.id}")
 
-        return {
-            "found": True,
-            "answer": answer_text,
-            "confidence": agent_result["confidence"],
-            "sources": agent_result["sources"],
-            "call_manager": False
-        }
-    else:
+        logger.info(f"Вызов process_question для: '{query_clean}'")
+        agent_result = process_question(db, query_clean, confidence_threshold=0.8)
+        
+        logger.info(f"Результат process_question: found={agent_result.get('found')}, confidence={agent_result.get('confidence', 0.0)}, call_manager={agent_result.get('call_manager', False)}")
+        
+        if agent_result.get("reason"):
+            logger.info(f"Причина результата: {agent_result.get('reason')}")
+
+        if agent_result["found"] and agent_result["confidence"] >= 0.8:
+            answer_text = agent_result["answer"]
+            logger.info(f"Ответ найден! Confidence: {agent_result['confidence']}, длина ответа: {len(answer_text)} символов")
+
+            answer = Answer(
+                question_id=question.id,
+                text=answer_text,
+                source="kb_ai_agent"
+            )
+
+            db.add(answer)
+            db.commit()
+
+            return {
+                "found": True,
+                "answer": answer_text,
+                "confidence": agent_result["confidence"],
+                "sources": agent_result["sources"],
+                "call_manager": False
+            }
+        else:
+            confidence = agent_result.get("confidence", 0.0)
+            reason = agent_result.get("reason", "")
+            logger.warning(f"Ответ не найден или низкая уверенность. Confidence: {confidence}, Reason: {reason}")
+            return {
+                "found": False,
+                "call_manager": True,
+                "confidence": confidence,
+                "reason": reason
+            }
+    except Exception as e:
+        logger.error(f"Ошибка при поиске ответа для '{query_clean}': {type(e).__name__}: {e}", exc_info=True)
         return {
             "found": False,
             "call_manager": True,
-            "confidence": agent_result.get("confidence", 0.0),
-            "reason": agent_result.get("reason", "")
+            "confidence": 0.0,
+            "reason": f"Ошибка обработки: {str(e)}"
         }
 
