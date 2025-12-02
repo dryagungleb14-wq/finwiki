@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models import QAPair, QAPairStatus, Question, Answer
 from app.schemas import QAPairUnansweredResponse, SlackQuestionRequest, AddAnswerRequest, QAPairResponse
 from app.services.search_service import search
+from app.services.ai_agent_service import process_question
 from app.auth import verify_slack_key, verify_admin_key
 
 router = APIRouter(prefix="/api/slack", tags=["slack"])
@@ -98,7 +99,7 @@ async def search_for_slack(
     api_key: str = Depends(verify_slack_key)
 ):
     if not query or not query.strip():
-        return {"found": False}
+        return {"found": False, "call_manager": True}
 
     question = Question(
         text=query.strip(),
@@ -109,15 +110,15 @@ async def search_for_slack(
     db.commit()
     db.refresh(question)
 
-    results = search(db, query.strip())
+    agent_result = process_question(db, query.strip(), confidence_threshold=0.8)
 
-    if results:
-        answer_text = results[0].answer_processed or results[0].answer
+    if agent_result["found"] and agent_result["confidence"] >= 0.8:
+        answer_text = agent_result["answer"]
 
         answer = Answer(
             question_id=question.id,
             text=answer_text,
-            source="kb"
+            source="kb_ai_agent"
         )
 
         db.add(answer)
@@ -125,8 +126,16 @@ async def search_for_slack(
 
         return {
             "found": True,
-            "answer": answer_text
+            "answer": answer_text,
+            "confidence": agent_result["confidence"],
+            "sources": agent_result["sources"],
+            "call_manager": False
         }
     else:
-        return {"found": False}
+        return {
+            "found": False,
+            "call_manager": True,
+            "confidence": agent_result.get("confidence", 0.0),
+            "reason": agent_result.get("reason", "")
+        }
 

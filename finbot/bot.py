@@ -63,12 +63,16 @@ def handle_message(message, say):
         if search_response and search_response.status_code == 200:
             data = search_response.json()
 
-            if data.get("found"):
+            if data.get("found") and not data.get("call_manager"):
                 answer = data.get("answer", "")
+                confidence = data.get("confidence", 0.0)
                 message_text = f"**Вопрос:** {text}\n\n{answer}"
-                logger.info(f"Ответ найден в БЗ для {user_id}")
+                logger.info(f"Ответ найден (confidence: {confidence}) для {user_id}")
                 say(text=message_text, thread_ts=message.get("ts"))
                 return
+            elif data.get("call_manager"):
+                logger.info(f"AI не уверен в ответе (confidence: {data.get('confidence', 0.0)}), призываем менеджера для {user_id}")
+                pass
 
         # Ответ не найден или ошибка поиска - сохраняем вопрос
         logger.info(f"Ответ не найден, сохраняю вопрос для {user_id}...")
