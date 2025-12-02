@@ -24,6 +24,9 @@ app = Flask(__name__)
 slack_client = WebClient(token=SLACK_BOT_TOKEN)
 signature_verifier = SignatureVerifier(SLACK_SIGNING_SECRET)
 
+logger.info(f"Бот запущен. Backend URL: {API_URL}")
+logger.info(f"API Key настроен: {'Да' if SLACK_API_KEY else 'Нет'}")
+
 _bot_user_id = None
 
 def get_bot_user_id():
@@ -34,20 +37,48 @@ def get_bot_user_id():
 
 def request_with_retry(method, url, max_retries=2, **kwargs):
     """Выполняет HTTP запрос с повторами при сетевых ошибках"""
+    logger.debug(f"Запрос {method} к {url}")
+    
     for attempt in range(max_retries + 1):
         try:
             if method == "GET":
-                return requests.get(url, **kwargs)
+                response = requests.get(url, **kwargs)
             elif method == "POST":
-                return requests.post(url, **kwargs)
-        except (requests.Timeout, requests.ConnectionError) as e:
+                response = requests.post(url, **kwargs)
+            else:
+                logger.error(f"Неподдерживаемый метод: {method}")
+                return None
+            
+            logger.info(f"Запрос {method} {url} - статус: {response.status_code}")
+            if response.status_code != 200:
+                logger.warning(f"Неуспешный статус {response.status_code} для {url}. Ответ: {response.text[:200]}")
+            
+            return response
+            
+        except requests.Timeout as e:
+            error_msg = f"Timeout при запросе к {url} (попытка {attempt + 1}/{max_retries + 1})"
             if attempt < max_retries:
                 wait_time = 2 ** attempt
-                logger.warning(f"Попытка {attempt + 1} не удалась: {type(e).__name__}. Повтор через {wait_time}s...")
+                logger.warning(f"{error_msg}. Повтор через {wait_time}s...")
                 time.sleep(wait_time)
             else:
-                logger.error(f"Все попытки исчерпаны: {e}")
-                raise
+                logger.error(f"{error_msg}. Все попытки исчерпаны.")
+                return None
+                
+        except requests.ConnectionError as e:
+            error_msg = f"Ошибка соединения с {url} (попытка {attempt + 1}/{max_retries + 1}): {str(e)}"
+            if attempt < max_retries:
+                wait_time = 2 ** attempt
+                logger.warning(f"{error_msg}. Повтор через {wait_time}s...")
+                time.sleep(wait_time)
+            else:
+                logger.error(f"{error_msg}. Все попытки исчерпаны.")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Неожиданная ошибка при запросе к {url}: {type(e).__name__}: {e}")
+            return None
+    
     return None
 
 def handle_message(event):
@@ -61,36 +92,50 @@ def handle_message(event):
     headers = {"X-API-Key": SLACK_API_KEY} if SLACK_API_KEY else {}
 
     try:
-        logger.info(f"Поиск ответа для вопроса от {user_id}: {text[:50]}...")
+        logger.info(f"Обработка вопроса от {user_id}: {text[:100]}...")
+
+        search_url = f"{API_URL}/api/slack/search"
+        logger.info(f"Поиск ответа в БЗ: GET {search_url}")
 
         search_response = request_with_retry(
             "GET",
-            f"{API_URL}/api/slack/search",
+            search_url,
             params={"query": text},
             headers=headers,
             timeout=5
         )
 
         if search_response and search_response.status_code == 200:
-            data = search_response.json()
+            try:
+                data = search_response.json()
+                logger.info(f"Ответ от backend: found={data.get('found')}")
 
-            if data.get("found"):
-                answer = data.get("answer", "")
-                message_text = f"**Вопрос:** {text}\n\n{answer}"
-                logger.info(f"Ответ найден в БЗ для {user_id}")
-                slack_client.chat_postMessage(
-                    channel=channel,
-                    text=message_text,
-                    thread_ts=event.get("ts")
-                )
-                return
+                if data.get("found"):
+                    answer = data.get("answer", "")
+                    message_text = f"**Вопрос:** {text}\n\n{answer}"
+                    logger.info(f"Ответ найден в БЗ для {user_id}, отправляю ответ")
+                    slack_client.chat_postMessage(
+                        channel=channel,
+                        text=message_text,
+                        thread_ts=event.get("ts")
+                    )
+                    return
+                else:
+                    logger.info(f"Ответ не найден в БЗ для вопроса: {text[:50]}")
+            except Exception as json_error:
+                logger.error(f"Ошибка парсинга JSON ответа от backend: {json_error}. Ответ: {search_response.text[:200]}")
+        else:
+            if search_response:
+                logger.warning(f"Поиск не удался: статус {search_response.status_code}, ответ: {search_response.text[:200]}")
+            else:
+                logger.warning(f"Поиск не удался: нет ответа от backend (возможно, недоступен)")
 
-        # Ответ не найден или ошибка поиска - сохраняем вопрос
-        logger.info(f"Ответ не найден, сохраняю вопрос для {user_id}...")
+        save_url = f"{API_URL}/api/slack/question"
+        logger.info(f"Сохранение вопроса: POST {save_url}")
 
         save_response = request_with_retry(
             "POST",
-            f"{API_URL}/api/slack/question",
+            save_url,
             json={
                 "question": text,
                 "slack_user": user_id
@@ -100,25 +145,46 @@ def handle_message(event):
         )
 
         if save_response and save_response.status_code == 200:
-            message_text = f"**Вопрос:** {text}\n\nПока я не могу помочь с вашим вопросом. Но я передал его финансовому менеджеру. Пожалуйста, дождитесь ответа."
-            logger.info(f"Вопрос сохранён для {user_id}")
-            slack_client.chat_postMessage(
-                channel=channel,
-                text=message_text,
-                thread_ts=event.get("ts")
-            )
+            try:
+                save_data = save_response.json()
+                logger.info(f"Вопрос успешно сохранён для {user_id}. ID: {save_data.get('id')}")
+                message_text = f"**Вопрос:** {text}\n\nПока я не могу помочь с вашим вопросом. Но я передал его финансовому менеджеру. Пожалуйста, дождитесь ответа."
+            except Exception as json_error:
+                logger.warning(f"Ошибка парсинга JSON ответа при сохранении: {json_error}")
+                message_text = f"**Вопрос:** {text}\n\nПока я не могу помочь с вашим вопросом. Но я передал его финансовому менеджеру. Пожалуйста, дождитесь ответа."
+            
+            try:
+                slack_client.chat_postMessage(
+                    channel=channel,
+                    text=message_text,
+                    thread_ts=event.get("ts")
+                )
+                logger.info(f"Сообщение отправлено пользователю {user_id}")
+            except Exception as send_error:
+                logger.error(f"Ошибка отправки сообщения в Slack: {send_error}")
         else:
-            message_text = f"**Вопрос:** {text}\n\nВаш вопрос принят. Менеджер ответит позже."
-            logger.warning(f"Не удалось сохранить вопрос (код: {save_response.status_code if save_response else 'нет ответа'}), но отправляю нейтральное сообщение")
-            slack_client.chat_postMessage(
-                channel=channel,
-                text=message_text,
-                thread_ts=event.get("ts")
-            )
+            if save_response:
+                error_detail = f"статус {save_response.status_code}"
+                if save_response.text:
+                    error_detail += f", ответ: {save_response.text[:200]}"
+                logger.error(f"Не удалось сохранить вопрос: {error_detail}")
+            else:
+                logger.error(f"Не удалось сохранить вопрос: backend недоступен (нет ответа)")
+            
+            message_text = f"**Вопрос:** {text}\n\nИзвините, произошла техническая ошибка. Ваш вопрос не был сохранён. Пожалуйста, попробуйте позже или свяжитесь с финансовым менеджером напрямую."
+            
+            try:
+                slack_client.chat_postMessage(
+                    channel=channel,
+                    text=message_text,
+                    thread_ts=event.get("ts")
+                )
+            except Exception as send_error:
+                logger.error(f"Не удалось отправить сообщение об ошибке: {send_error}")
 
     except Exception as e:
-        logger.error(f"Ошибка при обработке вопроса от {user_id}: {e}", exc_info=True)
-        message_text = f"**Вопрос:** {text}\n\nВаш вопрос принят. Менеджер ответит позже."
+        logger.error(f"Критическая ошибка при обработке вопроса от {user_id}: {type(e).__name__}: {e}", exc_info=True)
+        message_text = f"**Вопрос:** {text}\n\nИзвините, произошла техническая ошибка. Ваш вопрос не был обработан. Пожалуйста, попробуйте позже или свяжитесь с финансовым менеджером напрямую."
         try:
             slack_client.chat_postMessage(
                 channel=channel,
@@ -126,7 +192,7 @@ def handle_message(event):
                 thread_ts=event.get("ts")
             )
         except Exception as send_error:
-            logger.error(f"Не удалось отправить сообщение: {send_error}")
+            logger.error(f"Не удалось отправить сообщение об ошибке: {send_error}")
 
 @app.route("/slack/events", methods=["POST"])
 def slack_events():
